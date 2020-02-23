@@ -1,0 +1,872 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<topology xmlns="http://www.cisco.com/VIRL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" schemaVersion="0.95" xsi:schemaLocation="http://www.cisco.com/VIRL https://raw.github.com/CiscoVIRL/schema/v0.95/virl.xsd">
+    <node name="R1-Hub" type="SIMPLE" subtype="CSR1000v" location="371,227">
+        <extensions>
+            <entry key="config" type="String">!
+! Last configuration change at 16:40:50 UTC Sun Feb 23 2020
+!
+version 16.9
+service timestamps debug datetime msec
+service timestamps log datetime msec
+platform qfp utilization monitor load 80
+no platform punt-keepalive disable-kernel-core
+platform console serial
+!
+hostname R1-Hub
+!
+boot-start-marker
+boot-end-marker
+!
+!
+enable secret 5 $1$me7Y$GSqyHE0yJW1vSp8xM1GWr/
+!
+no aaa new-model
+!
+ip vrf BLACK
+!
+ip vrf RED
+!
+!
+!
+!
+!
+!
+!
+ip admission watch-list expiry-time 0
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+subscriber templating
+! 
+! 
+! 
+! 
+!
+multilink bundle-name authenticated
+!
+!
+!
+!
+!
+crypto pki trustpoint TP-self-signed-1847884431
+ enrollment selfsigned
+ subject-name cn=IOS-Self-Signed-Certificate-1847884431
+ revocation-check none
+ rsakeypair TP-self-signed-1847884431
+!
+!
+crypto pki certificate chain TP-self-signed-1847884431
+ certificate self-signed 01 nvram:IOS-Self-Sig#1.cer
+!
+!
+!
+!
+!
+!
+!
+!
+license udi pid CSR1000V sn 92G4PU7SIP5
+no license smart enable
+diagnostic bootup level minimal
+!
+spanning-tree extend system-id
+!
+!
+!
+username cisco privilege 15 secret 5 $1$67E4$7YtCNKhWutuXfenffkFv8/
+!
+redundancy
+!
+crypto ikev2 proposal CYPROTECT-IKEV2-PROPOSAL 
+ encryption aes-gcm-256
+ prf sha512
+ group 21
+!
+crypto ikev2 policy CYPROTECT-IKEV2-POLICY 
+ match fvrf BLACK
+ proposal CYPROTECT-IKEV2-PROPOSAL
+!
+crypto ikev2 keyring CYPROTECT-IKEV2-KEYRING
+ peer R2
+  description R2 remote access router
+  address 22.0.0.2
+  identity fqdn R2-Spoke1.cyprotect.co.uk
+  pre-shared-key local CYPROTECT-DMVPN-LAB-KEY
+  pre-shared-key remote CYPROTECT-DMVPN-LAB-KEY
+ !
+ peer R3
+  description R2 remote access router
+  address 33.0.0.2
+  identity fqdn R3-Spoke2.cyprotect.co.uk
+  pre-shared-key local CYPROTECT-DMVPN-LAB-KEY
+  pre-shared-key remote CYPROTECT-DMVPN-LAB-KEY
+ !
+!
+!
+crypto ikev2 profile CYPROTECT-IKEV2-PROFILE
+ match fvrf BLACK
+ match identity remote fqdn R2-Spoke1.cyprotect.co.uk
+ match identity remote fqdn R3-Spoke2.cyprotect.co.uk
+ identity local fqdn R1-Hub.cyprotect.co.uk
+ authentication remote pre-share
+ authentication local pre-share
+ keyring local CYPROTECT-IKEV2-KEYRING
+!
+!
+!
+!
+! 
+!
+!
+!
+!
+!
+!
+crypto isakmp policy 10
+ encr aes 256
+ hash sha512
+ authentication pre-share
+ group 21
+crypto isakmp key CYPROTECT-PSK address 0.0.0.0        
+!
+!
+crypto ipsec transform-set CYPROTECT-TRANSFORM-SET esp-aes 256 esp-sha512-hmac 
+ mode transport
+crypto ipsec transform-set CYPROTECT-IPSEC-SET esp-gcm 256 
+ mode tunnel
+!
+crypto ipsec profile CYPROTECT-IPSEC-PROFILE
+ set transform-set CYPROTECT-IPSEC-SET 
+ set ikev2-profile CYPROTECT-IKEV2-PROFILE
+!
+!
+!
+!
+!
+!
+! 
+! 
+!
+!
+interface Loopback10
+ ip vrf forwarding RED
+ ip address 10.1.1.1 255.255.255.0
+!
+interface Tunnel172
+ ip vrf forwarding RED
+ ip address 172.16.0.1 255.255.255.0
+ no ip redirects
+ ip mtu 1400
+ no ip next-hop-self eigrp 100
+ no ip split-horizon eigrp 100
+ ip nhrp network-id 1
+ ip nhrp redirect
+ tunnel source GigabitEthernet2
+ tunnel mode gre multipoint
+ tunnel key 12345
+ tunnel path-mtu-discovery
+ tunnel vrf BLACK
+ tunnel protection ipsec profile CYPROTECT-IPSEC-PROFILE
+!
+interface GigabitEthernet1
+ ip address dhcp
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface GigabitEthernet2
+ ip vrf forwarding BLACK
+ ip address 11.0.0.2 255.255.255.0
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface GigabitEthernet3
+ no ip address
+ shutdown
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+!
+router eigrp 100
+ !
+ address-family ipv4 vrf RED autonomous-system 100
+  network 10.1.1.0 0.0.0.255
+  network 172.16.0.0 0.0.0.255
+ exit-address-family
+!
+ip forward-protocol nd
+no ip http server
+ip http authentication local
+ip http secure-server
+ip http client source-interface GigabitEthernet1
+ip route vrf BLACK 0.0.0.0 0.0.0.0 11.0.0.1
+!
+!
+!
+!
+!
+!
+control-plane
+!
+!
+!
+!
+!
+!
+line con 0
+ stopbits 1
+line vty 0 4
+ login
+!
+!
+!
+!
+!
+!
+end
+
+</entry>
+        </extensions>
+        <interface id="0" name="GigabitEthernet2"/>
+        <interface id="1" name="GigabitEthernet3"/>
+    </node>
+    <node name="R4-ISP" type="SIMPLE" subtype="CSR1000v" location="579,224">
+        <extensions>
+            <entry key="config" type="String">!
+! Last configuration change at 16:40:49 UTC Sun Feb 23 2020
+!
+version 16.9
+service timestamps debug datetime msec
+service timestamps log datetime msec
+platform qfp utilization monitor load 80
+no platform punt-keepalive disable-kernel-core
+platform console serial
+!
+hostname R4-ISP
+!
+boot-start-marker
+boot-end-marker
+!
+!
+enable secret 5 $1$q4ty$8ZRUlPFnq0jJNeIcKkLt5.
+!
+no aaa new-model
+!
+!
+!
+!
+!
+!
+!
+ip admission watch-list expiry-time 0
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+subscriber templating
+! 
+! 
+! 
+! 
+!
+multilink bundle-name authenticated
+!
+!
+!
+!
+!
+crypto pki trustpoint TP-self-signed-1484711662
+ enrollment selfsigned
+ subject-name cn=IOS-Self-Signed-Certificate-1484711662
+ revocation-check none
+ rsakeypair TP-self-signed-1484711662
+!
+!
+crypto pki certificate chain TP-self-signed-1484711662
+ certificate self-signed 01 nvram:IOS-Self-Sig#1.cer
+!
+!
+!
+!
+!
+!
+!
+!
+license udi pid CSR1000V sn 961EO2L0527
+no license smart enable
+diagnostic bootup level minimal
+!
+spanning-tree extend system-id
+!
+!
+!
+username cisco privilege 15 secret 5 $1$N0Gn$3xO7AxdSYOLNx5IJSifPv0
+!
+redundancy
+!
+!
+!
+!
+!
+!
+! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+! 
+! 
+!
+!
+interface GigabitEthernet1
+ ip address dhcp
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface GigabitEthernet2
+ ip address 11.0.0.1 255.255.255.0
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface GigabitEthernet3
+ ip address 22.0.0.1 255.255.255.0
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface GigabitEthernet4
+ ip address 33.0.0.1 255.255.255.0
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface GigabitEthernet5
+ no ip address
+ shutdown
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+ip forward-protocol nd
+no ip http server
+ip http authentication local
+ip http secure-server
+ip http client source-interface GigabitEthernet1
+!
+!
+!
+!
+!
+!
+control-plane
+!
+!
+!
+!
+!
+!
+line con 0
+ stopbits 1
+line vty 0 4
+ login
+!
+!
+!
+!
+!
+!
+end
+
+</entry>
+        </extensions>
+        <interface id="0" name="GigabitEthernet2"/>
+        <interface id="1" name="GigabitEthernet3"/>
+        <interface id="2" name="GigabitEthernet4"/>
+        <interface id="3" name="GigabitEthernet5"/>
+    </node>
+    <node name="R2-Spoke1" type="SIMPLE" subtype="CSR1000v" location="796,68">
+        <extensions>
+            <entry key="config" type="String">!
+! Last configuration change at 16:40:50 UTC Sun Feb 23 2020
+!
+version 16.9
+service timestamps debug datetime msec
+service timestamps log datetime msec
+platform qfp utilization monitor load 80
+no platform punt-keepalive disable-kernel-core
+platform console serial
+!
+hostname R2-Spoke1
+!
+boot-start-marker
+boot-end-marker
+!
+!
+enable secret 5 $1$pcjO$hh96Cz5OkErcoBOfoSX/m.
+!
+no aaa new-model
+!
+ip vrf BLACK
+!
+ip vrf RED
+!
+!
+!
+!
+!
+!
+!
+ip admission watch-list expiry-time 0
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+subscriber templating
+! 
+! 
+! 
+! 
+!
+multilink bundle-name authenticated
+!
+!
+!
+!
+!
+crypto pki trustpoint TP-self-signed-1234812761
+ enrollment selfsigned
+ subject-name cn=IOS-Self-Signed-Certificate-1234812761
+ revocation-check none
+ rsakeypair TP-self-signed-1234812761
+!
+!
+crypto pki certificate chain TP-self-signed-1234812761
+ certificate self-signed 01 nvram:IOS-Self-Sig#1.cer
+!
+!
+!
+!
+!
+!
+!
+!
+license udi pid CSR1000V sn 9AO9TQ6RYZW
+no license smart enable
+diagnostic bootup level minimal
+!
+spanning-tree extend system-id
+!
+!
+!
+username cisco privilege 15 secret 5 $1$F3Qo$IGPsLGG7TyirP5nVdHt5K1
+!
+redundancy
+!
+crypto ikev2 proposal CYPROTECT-IKEV2-PROPOSAL 
+ encryption aes-gcm-256
+ prf sha512
+ group 21
+!
+crypto ikev2 policy CYPROTECT-IKEV2-POLICY 
+ match fvrf BLACK
+ proposal CYPROTECT-IKEV2-PROPOSAL
+!
+crypto ikev2 keyring CYPROTECT-IKEV2-KEYRING
+ peer R1
+  description R1 remote access router
+  address 11.0.0.2
+  identity fqdn R1-Hub.cyprotect.co.uk
+  pre-shared-key local CYPROTECT-DMVPN-LAB-KEY
+  pre-shared-key remote CYPROTECT-DMVPN-LAB-KEY
+ !
+ peer R3
+  description R3 remote access router
+  address 33.0.0.2
+  identity fqdn R3-Spoke2.cyprotect.co.uk
+  pre-shared-key local CYPROTECT-DMVPN-LAB-KEY
+  pre-shared-key remote CYPROTECT-DMVPN-LAB-KEY
+ !
+!
+!
+crypto ikev2 profile CYPROTECT-IKEV2-PROFILE
+ match fvrf BLACK
+ match identity remote fqdn R1-Hub.cyprotect.co.uk
+ match identity remote fqdn R3-Spoke2.cyprotect.co.uk
+ identity local fqdn R2-Spoke1.cyprotect.co.uk
+ authentication remote pre-share
+ authentication local pre-share
+ keyring local CYPROTECT-IKEV2-KEYRING
+!
+!
+!
+!
+! 
+!
+!
+!
+!
+!
+!
+crypto isakmp policy 10
+ encr aes 256
+ hash sha512
+ authentication pre-share
+ group 21
+crypto isakmp key CYPROTECT-PSK address 0.0.0.0        
+!
+!
+crypto ipsec transform-set CYPROTECT-TRANSFORM-SET esp-aes 256 esp-sha512-hmac 
+ mode transport
+crypto ipsec transform-set CYPROTECT-IPSEC-SET esp-gcm 256 
+ mode tunnel
+!
+crypto ipsec profile CYPROTECT-IPSEC-PROFILE
+ set transform-set CYPROTECT-IPSEC-SET 
+ set ikev2-profile CYPROTECT-IKEV2-PROFILE
+!
+!
+!
+!
+!
+!
+! 
+! 
+!
+!
+interface Loopback10
+ ip vrf forwarding RED
+ ip address 10.2.2.2 255.255.255.0
+!
+interface Tunnel172
+ ip vrf forwarding RED
+ ip address 172.16.0.2 255.255.255.0
+ no ip redirects
+ ip mtu 1400
+ ip nhrp map 172.16.0.1 11.0.0.2
+ ip nhrp map multicast 11.0.0.2
+ ip nhrp network-id 1
+ ip nhrp nhs 172.16.0.1
+ tunnel source GigabitEthernet2
+ tunnel mode gre multipoint
+ tunnel key 12345
+ tunnel path-mtu-discovery
+ tunnel vrf BLACK
+ tunnel protection ipsec profile CYPROTECT-IPSEC-PROFILE
+!
+interface GigabitEthernet1
+ ip address dhcp
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface GigabitEthernet2
+ ip vrf forwarding BLACK
+ ip address 22.0.0.2 255.255.255.0
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface GigabitEthernet3
+ no ip address
+ shutdown
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+!
+router eigrp 100
+ !
+ address-family ipv4 vrf RED autonomous-system 100
+  network 10.2.2.0 0.0.0.255
+  network 172.16.0.0 0.0.0.255
+ exit-address-family
+!
+ip forward-protocol nd
+no ip http server
+ip http authentication local
+ip http secure-server
+ip http client source-interface GigabitEthernet1
+ip route vrf BLACK 0.0.0.0 0.0.0.0 22.0.0.1
+!
+!
+!
+!
+!
+!
+control-plane
+!
+!
+!
+!
+!
+!
+line con 0
+ stopbits 1
+line vty 0 4
+ login
+!
+!
+!
+!
+!
+!
+end
+
+</entry>
+        </extensions>
+        <interface id="0" name="GigabitEthernet2"/>
+        <interface id="1" name="GigabitEthernet3"/>
+    </node>
+    <node name="R3-Spoke2" type="SIMPLE" subtype="CSR1000v" location="817,322">
+        <extensions>
+            <entry key="config">!
+! Last configuration change at 16:40:50 UTC Sun Feb 23 2020
+!
+version 16.9
+service timestamps debug datetime msec
+service timestamps log datetime msec
+platform qfp utilization monitor load 80
+no platform punt-keepalive disable-kernel-core
+platform console serial
+!
+hostname R3-Spoke2
+!
+boot-start-marker
+boot-end-marker
+!
+!
+!
+no aaa new-model
+!
+ip vrf BLACK
+!
+ip vrf RED
+!
+!
+!
+!
+!
+!
+!
+ip admission watch-list expiry-time 0
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+subscriber templating
+! 
+! 
+! 
+! 
+!
+multilink bundle-name authenticated
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+license udi pid CSR1000V sn 9BVRUD7GA1Z
+no license smart enable
+diagnostic bootup level minimal
+!
+spanning-tree extend system-id
+!
+!
+!
+!
+redundancy
+!
+crypto ikev2 proposal CYPROTECT-IKEV2-PROPOSAL 
+ encryption aes-gcm-256
+ prf sha512
+ group 21
+!
+crypto ikev2 policy CYPROTECT-IKEV2-POLICY 
+ match fvrf BLACK
+ proposal CYPROTECT-IKEV2-PROPOSAL
+!
+crypto ikev2 keyring CYPROTECT-IKEV2-KEYRING
+ peer R1
+  description R1 remote access router
+  address 11.0.0.2
+  identity fqdn R1-Hub.cyprotect.co.uk
+  pre-shared-key local CYPROTECT-DMVPN-LAB-KEY
+  pre-shared-key remote CYPROTECT-DMVPN-LAB-KEY
+ !
+ peer R2
+  description R3 remote access router
+  address 22.0.0.2
+  identity fqdn R2-Spoke1.cyprotect.co.uk
+  pre-shared-key local CYPROTECT-DMVPN-LAB-KEY
+  pre-shared-key remote CYPROTECT-DMVPN-LAB-KEY
+ !
+!
+!
+crypto ikev2 profile CYPROTECT-IKEV2-PROFILE
+ match fvrf BLACK
+ match identity remote fqdn R1-Hub.cyprotect.co.uk
+ match identity remote fqdn R2-Spoke1.cyprotect.co.uk
+ identity local fqdn R3-Spoke2.cyprotect.co.uk
+ authentication remote pre-share
+ authentication local pre-share
+ keyring local CYPROTECT-IKEV2-KEYRING
+!
+!
+!
+!
+! 
+!
+!
+!
+!
+!
+!
+!
+crypto ipsec transform-set CYPROTECT-IPSEC-SET esp-gcm 256 
+ mode tunnel
+!
+crypto ipsec profile CYPROTECT-IPSEC-PROFILE
+ set transform-set CYPROTECT-IPSEC-SET 
+ set ikev2-profile CYPROTECT-IKEV2-PROFILE
+!
+!
+!
+!
+!
+!
+! 
+! 
+!
+!
+interface Loopback10
+ ip vrf forwarding RED
+ ip address 10.3.3.3 255.255.255.0
+!
+interface Tunnel172
+ ip vrf forwarding RED
+ ip address 172.16.0.3 255.255.255.0
+ no ip redirects
+ ip mtu 1400
+ ip nhrp map 172.16.0.1 11.0.0.2
+ ip nhrp map multicast 11.0.0.2
+ ip nhrp network-id 1
+ ip nhrp nhs 172.16.0.1
+ tunnel source GigabitEthernet2
+ tunnel mode gre multipoint
+ tunnel key 12345
+ tunnel path-mtu-discovery
+ tunnel vrf BLACK
+ tunnel protection ipsec profile CYPROTECT-IPSEC-PROFILE
+!
+interface GigabitEthernet1
+ ip address dhcp
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface GigabitEthernet2
+ ip vrf forwarding BLACK
+ ip address 33.0.0.2 255.255.255.0
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+!
+router eigrp 100
+ !
+ address-family ipv4 vrf RED autonomous-system 100
+  network 10.3.3.0 0.0.0.255
+  network 172.16.0.0 0.0.0.255
+ exit-address-family
+!
+ip forward-protocol nd
+no ip http server
+ip http secure-server
+ip http client source-interface GigabitEthernet1
+ip route vrf BLACK 0.0.0.0 0.0.0.0 33.0.0.1
+!
+!
+!
+!
+!
+!
+control-plane
+!
+!
+!
+!
+!
+!
+line con 0
+ stopbits 1
+line vty 0 4
+ login
+!
+!
+!
+!
+!
+!
+end
+
+</entry>
+        </extensions>
+        <interface id="0" name="GigabitEthernet2"/>
+    </node>
+    <annotations>
+        <line x1="361" y1="235" x2="523" y2="394" stroke-width="3"/>
+        <line x1="358" y1="234" x2="354" y2="260" stroke-width="3"/>
+        <line x1="361" y1="234" x2="391" y2="238" stroke-width="3"/>
+        <text x="272" y="328">IKE Initiliastion Request   </text>
+        <text x="317" y="349">flood attack   </text>
+    </annotations>
+    <connection dst="/virl:topology/virl:node[2]/virl:interface[1]" src="/virl:topology/virl:node[1]/virl:interface[1]"/>
+    <connection dst="/virl:topology/virl:node[3]/virl:interface[1]" src="/virl:topology/virl:node[2]/virl:interface[2]"/>
+    <connection dst="/virl:topology/virl:node[4]/virl:interface[1]" src="/virl:topology/virl:node[2]/virl:interface[3]"/>
+</topology>
